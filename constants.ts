@@ -1,0 +1,1 @@
+export const TRIP_DATE_RANGE = 'November 6th - 11th';

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flight Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      }
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      @keyframes drift {
+        0% { transform: translateX(-5%); }
+        50% { transform: translateX(5%); }
+        100% { transform: translateX(-5%); }
+      }
+      @keyframes fall {
+        0% { transform: translateY(-10%); opacity: 1; }
+        100% { transform: translateY(80%); opacity: 0; }
+      }
+      @keyframes flash {
+        0%, 100% { opacity: 0; }
+        5%, 45% { opacity: 1; }
+        50% { opacity: 0; }
+      }
+      .animate-spin-slow {
+        animation: spin 15s linear infinite;
+        transform-origin: center;
+      }
+      .animate-drift {
+        animation: drift 5s ease-in-out infinite;
+      }
+      .animate-fall {
+        animation: fall 1.5s linear infinite;
+      }
+      .animate-flash {
+        animation: flash 4s ease-in-out infinite;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0"
+  }
+}
+</script>
+</head>
+  <body class="bg-gray-900 antialiased">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

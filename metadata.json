@@ -1,0 +1,5 @@
+{
+  "name": "Flight Tracker",
+  "description": "An application to track real-time flight statuses, baggage check-in delays, and shutdown warnings for a group trip to the Dominican Republic from Houston (IAH), San Francisco (SFO), and Miami (MIA).",
+  "requestFramePermissions": []
+}
