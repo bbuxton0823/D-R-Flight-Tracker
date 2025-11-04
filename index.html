@@ -27,6 +27,23 @@
         5%, 45% { opacity: 1; }
         50% { opacity: 0; }
       }
+      @keyframes sway {
+        0%, 100% { transform: rotate(-3deg); }
+        50% { transform: rotate(3deg); }
+      }
+      @keyframes pulse-bright {
+        0%, 100% { filter: brightness(1); }
+        50% { filter: brightness(1.2); }
+      }
+      @keyframes gentle-fly {
+        0% { transform: translate(-8px, 4px) rotate(-3deg); }
+        50% { transform: translate(8px, -4px) rotate(3deg); }
+        100% { transform: translate(-8px, 4px) rotate(-3deg); }
+      }
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
       .animate-spin-slow {
         animation: spin 15s linear infinite;
         transform-origin: center;
@@ -39,6 +56,40 @@
       }
       .animate-flash {
         animation: flash 4s ease-in-out infinite;
+      }
+      .animate-sway {
+        animation: sway 3s ease-in-out infinite;
+        transform-origin: bottom center;
+      }
+      .animate-pulse-bright {
+        animation: pulse-bright 2s ease-in-out infinite;
+      }
+      .animate-gentle-fly {
+        animation: gentle-fly 4s ease-in-out infinite;
+      }
+      .animate-fade-in {
+        animation: fade-in 0.5s ease-in-out;
+      }
+      /* Custom scrollbar for weather forecast */
+      .custom-scrollbar::-webkit-scrollbar {
+        height: 8px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #1f2937; /* bg-gray-800 */
+        border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #4b5563; /* bg-gray-600 */
+        border-radius: 10px;
+        border: 2px solid #1f2937; /* bg-gray-800 */
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #6b7280; /* bg-gray-500 */
+      }
+      /* For Firefox */
+      .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: #4b5563 #1f2937;
       }
     </style>
   <script type="importmap">

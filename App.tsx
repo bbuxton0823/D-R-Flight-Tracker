@@ -4,52 +4,106 @@ import Dashboard from './components/Dashboard';
 import ShutdownAlert from './components/ShutdownAlert';
 import DataSources from './components/DataSources';
 import Tabs from './components/Tabs';
-import type { TripData, Source } from './types';
-import { fetchTripData } from './services/geminiService';
+import type { TripData, TripLeg, Source, ShutdownAlertData } from './types';
+import { fetchTripLegData } from './services/geminiService';
+import LoadingIndicator from './components/LoadingIndicator';
+
+const initialTripData: TripData = {
+    tripLegs: [
+        { title: 'Flights to Miami', date: 'Nov 6th & 7th', airports: [] },
+        { title: 'Flight to P. Plata', date: 'Nov 7th', airports: [] },
+        { title: 'Flight from P. Plata', date: 'Nov 11th', airports: [] },
+        { title: 'Flights Home', date: 'Nov 11th', airports: [] },
+    ],
+    shutdownAlert: { level: 'None', message: '' }
+};
 
 const App: React.FC = () => {
-  const [tripData, setTripData] = useState<TripData | null>(null);
+  const [tripData, setTripData] = useState<TripData>(initialTripData);
+  const [loadedLegs, setLoadedLegs] = useState<boolean[]>([false, false, false, false]);
   const [sources, setSources] = useState<Source[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean[]>([false, false, false, false]);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 
-  const loadTripData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const loadLegData = useCallback(async (legIndex: number, forceRefresh = false) => {
+    setIsLoading(prev => {
+        const newIsLoading = [...prev];
+        newIsLoading[legIndex] = true;
+        return newIsLoading;
+    });
+
+    if (!forceRefresh) {
+        setError(null);
+    }
     try {
-      const { data, sources } = await fetchTripData();
-      if (data) {
-        setTripData(data);
-        setSources(sources);
-        setLastUpdated(new Date());
-      } else {
-        setError('Failed to fetch trip data. The response was empty.');
-      }
+      const { leg, sources: newSources, shutdownAlert } = await fetchTripLegData(legIndex);
+      
+      setTripData(prevData => {
+          const newTripLegs = [...prevData.tripLegs];
+          newTripLegs[legIndex] = leg;
+          return {
+              ...prevData,
+              tripLegs: newTripLegs,
+              shutdownAlert: shutdownAlert || prevData.shutdownAlert,
+          };
+      });
+
+      setLoadedLegs(prev => {
+          const newLoaded = [...prev];
+          newLoaded[legIndex] = true;
+          return newLoaded;
+      });
+      
+      setSources(prevSources => {
+          const existingUris = new Set(prevSources.map(s => s.uri));
+          const uniqueNewSources = newSources.filter(s => !existingUris.has(s.uri));
+          return [...prevSources, ...uniqueNewSources];
+      });
+
+      setLastUpdated(new Date());
     } catch (err) {
       setError('An unexpected error occurred while fetching data.');
       console.error(err);
     } finally {
-      setIsLoading(false);
+      setIsLoading(prev => {
+          const newIsLoading = [...prev];
+          newIsLoading[legIndex] = false;
+          return newIsLoading;
+      });
     }
   }, []);
 
+  // Effect to load the active tab if it's not already loaded or loading
   useEffect(() => {
-    loadTripData();
-  }, [loadTripData]);
+    if (!loadedLegs[activeTabIndex] && !isLoading[activeTabIndex]) {
+      loadLegData(activeTabIndex);
+    }
+  }, [activeTabIndex, loadedLegs, isLoading, loadLegData]);
+  
+  // Effect to preload other tabs in the background
+  useEffect(() => {
+    const anyLoaded = loadedLegs.some(l => l);
+    if (!anyLoaded) return; // Don't start preloading until at least one tab is loaded
+
+    const nextToPreloadIndex = loadedLegs.findIndex((loaded, index) => !loaded && !isLoading[index]);
+    
+    if (nextToPreloadIndex !== -1) {
+      loadLegData(nextToPreloadIndex);
+    }
+  }, [loadedLegs, isLoading, loadLegData]);
+
+  const handleRefresh = useCallback(() => {
+    loadLegData(activeTabIndex, true);
+  }, [activeTabIndex, loadLegData]);
 
   const renderContent = () => {
-    if (isLoading && !tripData) {
+    const isInitialLoading = isLoading[0] && !loadedLegs.some(l => l);
+
+    if (isInitialLoading) {
       return (
-        <div className="text-center py-20">
-          <div className="flex justify-center items-center h-24">
-            <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g><circle cx="60" cy="60" r="50" fill="none" stroke="#374151" strokeWidth="4" /><path d="M 60,10 A 50,50 0 0,1 104.95,45.05" fill="none" stroke="#60a5fa" strokeWidth="4" strokeLinecap="round"><animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="2s" repeatCount="indefinite" /></path><path d="M55 55 L 65 60 L 55 65" fill="#60a5fa" transform="translate(48.5, -15.5) rotate(50 60 60)"><animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="2s" repeatCount="indefinite" /></path></g></svg>
-          </div>
-          <p className="text-lg mt-4 text-gray-400 animate-pulse">
-            Tracking your group's flights...
-          </p>
-        </div>
+        <LoadingIndicator message="Tracking your group's flights..." />
       );
     }
 
@@ -58,7 +112,7 @@ const App: React.FC = () => {
         <div className="text-center py-20 px-4">
           <p className="text-red-400">{error}</p>
           <button
-            onClick={loadTripData}
+            onClick={handleRefresh}
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
           >
             Try Again
@@ -67,24 +121,27 @@ const App: React.FC = () => {
       );
     }
     
-    if (!tripData) {
-        return null;
-    }
-
+    const isCurrentLegLoaded = loadedLegs[activeTabIndex];
+    const isCurrentLegLoading = isLoading[activeTabIndex];
     const activeLeg = tripData.tripLegs[activeTabIndex];
 
     return (
       <>
-        {tripData.shutdownAlert && <ShutdownAlert alertData={tripData.shutdownAlert} />}
+        {tripData.shutdownAlert?.level !== 'None' && <ShutdownAlert alertData={tripData.shutdownAlert} />}
         <Tabs
             tripLegs={tripData.tripLegs}
             activeTabIndex={activeTabIndex}
             onTabChange={setActiveTabIndex}
         />
-        <Dashboard 
-            airports={activeLeg.airports} 
-            weatherForecast={activeLeg.weatherForecast} 
-        />
+        {isCurrentLegLoading && !isCurrentLegLoaded && (
+            <LoadingIndicator message={`Loading flight data for ${activeLeg.title}...`} />
+        )}
+        {isCurrentLegLoaded && (
+            <Dashboard 
+                airports={activeLeg.airports} 
+                weatherForecast={activeLeg.weatherForecast} 
+            />
+        )}
         <DataSources sources={sources} />
       </>
     );
@@ -92,7 +149,7 @@ const App: React.FC = () => {
 
   return (
     <div className="bg-gray-900 min-h-screen font-sans text-gray-100">
-      <Header onRefresh={loadTripData} isLoading={isLoading} lastUpdated={lastUpdated} activeTabIndex={activeTabIndex} />
+      <Header onRefresh={handleRefresh} isLoading={isLoading[activeTabIndex]} lastUpdated={lastUpdated} activeTabIndex={activeTabIndex} />
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         {renderContent()}
       </main>
